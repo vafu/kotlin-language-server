@@ -79,6 +79,7 @@ import kotlin.script.experimental.jvm.JvmDependency
 import org.javacs.kt.util.KotlinLSException
 import org.javacs.kt.util.KotlinNullableNotNullManager
 import org.javacs.kt.util.LoggingMessageCollector
+import org.jetbrains.kotlin.com.intellij.psi.search.GlobalSearchScope
 
 private val GRADLE_DSL_DEPENDENCY_PATTERN = Regex("^gradle-(?:kotlin-dsl|core).*\\.jar$")
 

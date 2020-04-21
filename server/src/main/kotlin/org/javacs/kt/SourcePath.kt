@@ -3,7 +3,9 @@ package org.javacs.kt
 import org.javacs.kt.util.fileExtension
 import org.javacs.kt.util.filePath
 import org.javacs.kt.util.describeURI
+import org.javacs.kt.util.preOrderTraversal
 import org.jetbrains.kotlin.com.intellij.lang.Language
+import org.jetbrains.kotlin.com.intellij.lang.java.JavaLanguage
 import org.jetbrains.kotlin.com.intellij.psi.PsiFile
 import org.jetbrains.kotlin.container.ComponentProvider
 import org.jetbrains.kotlin.psi.KtFile
@@ -14,6 +16,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.net.URI
 import java.util.concurrent.locks.ReentrantLock
+import java.util.jar.JarFile
 
 class SourcePath(
     private val cp: CompilerClassPath,
@@ -93,10 +96,10 @@ class SourcePath(
         }
 
         fun prepareCompiledFile(): CompiledFile =
-                parseIfChanged().apply { compileIfNull() }.let { doPrepareCompiledFile() }
+            parseIfChanged().apply { compileIfNull() }.let { doPrepareCompiledFile() }
 
         private fun doPrepareCompiledFile(): CompiledFile =
-                CompiledFile(content, compiledFile!!, compiledContext!!, compiledContainer!!, allIncludingThis(), cp, isScript, kind)
+            CompiledFile(content, compiledFile!!, compiledContext!!, compiledContainer!!, allIncludingThis(), cp, isScript, kind)
 
         private fun allIncludingThis(): Collection<KtFile> = parseIfChanged().let {
             if (isTemporary) (all().asSequence() + sequenceOf(parsed!!)).toList()
@@ -152,13 +155,13 @@ class SourcePath(
      * Compile the latest version of a file
      */
     fun currentVersion(uri: URI): CompiledFile =
-            sourceFile(uri).apply { compileIfChanged() }.prepareCompiledFile()
+        sourceFile(uri).apply { compileIfChanged() }.prepareCompiledFile()
 
     /**
      * Return whatever is the most-recent already-compiled version of `file`
      */
     fun latestCompiledVersion(uri: URI): CompiledFile =
-            sourceFile(uri).prepareCompiledFile()
+        sourceFile(uri).prepareCompiledFile()
 
     /**
      * Compile changed files
@@ -218,7 +221,39 @@ class SourcePath(
      * Get parsed trees for all .kt files on source path
      */
     fun all(includeHidden: Boolean = false): Collection<KtFile> =
-            files.values
-                .filter { includeHidden || !it.isTemporary }
-                .map { it.apply { parseIfChanged() }.parsed!! }
+        files.values
+            .filter { includeHidden || !it.isTemporary }
+            .map { it.apply { parseIfChanged() }.parsed!! }
+
+    fun allSymbols(includeHidden: Boolean = false) =
+        all(includeHidden) + javaFiles()
+
+
+    private var allFiles: List<PsiFile>? = null
+
+    private fun javaFiles() =
+        allFiles ?: cp.javaSourcePath.map {
+            val content = it.toFile().readText()
+            cp.compiler.createPsiFile(content, it, JavaLanguage.INSTANCE, CompilationKind.DEFAULT)
+        } + all()
+
+    private fun fromClasspath() =
+        cp.classPath.asSequence()
+            .map {
+                JarFile(it.toFile()).entries() to it
+            }
+            .flatMap { (entries, path) ->
+                entries
+                    .asSequence()
+                    .filter { !it.isDirectory && it.name.endsWith("class") }
+                    .map { URI.create("kls:${path.toUri()}!/$it") to path }
+            }
+            .map { (klsUri, path) -> contentProvider.contentOf(klsUri) to path }
+            .map { (content, path) ->
+//       val file =  KlsURI(path).extractToTemporaryFile(TemporaryDirectory("asdf"))
+                cp.compiler.createPsiFile(content = content, file = path, language = JavaLanguage.INSTANCE, kind = CompilationKind.DEFAULT)
+            }
+            .toList()
+            .also { allFiles = it }
 }
+

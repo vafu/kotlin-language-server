@@ -12,8 +12,8 @@ import java.nio.file.Path
  */
 class CompilerClassPath(private val config: CompilerConfiguration) : Closeable {
     private val workspaceRoots = mutableSetOf<Path>()
-    private val javaSourcePath = mutableSetOf<Path>()
-    private val classPath = mutableSetOf<Path>()
+     val javaSourcePath = mutableSetOf<Path>()
+     val classPath = mutableSetOf<Path>()
     private val buildScriptClassPath = mutableSetOf<Path>()
     var compiler = Compiler(javaSourcePath, classPath, buildScriptClassPath)
         private set

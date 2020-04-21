@@ -16,8 +16,7 @@ class Args {
      *  - TCP Client, in whcih case the server will connect to the specified tcpClientPort/tcpClientHost (optionally used by VSCode)
      */
 
-    @Parameter(names = ["--tcpServerPort", "-sp"])
-    var tcpServerPort: Int? = null
+    var tcpServerPort: Int? = 17224
     @Parameter(names = ["--tcpClientPort", "-p"])
     var tcpClientPort: Int? = null
     @Parameter(names = ["--tcpCllientHost", "-h"])
