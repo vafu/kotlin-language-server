@@ -14,8 +14,10 @@ import org.javacs.kt.util.toPath
 import org.jetbrains.kotlin.com.intellij.lang.jvm.JvmModifier
 import org.jetbrains.kotlin.com.intellij.psi.*
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.allChildren
+import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.parents
-import org.omg.CORBA.Object
+import java.util.concurrent.ConcurrentHashMap
 
 fun documentSymbols(file: KtFile): List<Either<SymbolInformation, DocumentSymbol>> =
         doDocumentSymbols(file).map { Either.forRight<SymbolInformation, DocumentSymbol>(it) }
@@ -26,10 +28,9 @@ private fun doDocumentSymbols(element: PsiElement): List<DocumentSymbol> {
     return pickImportantElements(element, true)?.let { currentDecl ->
         val file = element.containingFile
         val span = range(file.text, currentDecl.textRange)
-//        val nameIdentifier = currentDecl.nameIdentifier
-//        val nameSpan = nameIdentifier?.let { range(file.text, it.textRange) } ?: span
-//        val symbol = DocumentSymbol(currentDecl.name ?: "<anonymous>", symbolKind(currentDecl), span, nameSpan, null, children)
-//        listOf(symbol)
+        val nameSpan = currentDecl.let { range(file.text, it.textRange) } ?: span
+        val symbol = DocumentSymbol(currentDecl.name ?: "<anonymous>", symbolKind(currentDecl), span, nameSpan, null, children)
+        listOf(symbol)
         emptyList<DocumentSymbol>()
     } ?: children
 }
@@ -37,17 +38,19 @@ private fun doDocumentSymbols(element: PsiElement): List<DocumentSymbol> {
 
 fun workspaceSymbols(query: String, sp: SourcePath): List<SymbolInformation> =
         doWorkspaceSymbols(sp)
-                .filter { containsCharactersInOrder(it.text!!, query, false) }
+                .filter { containsCharactersInOrder(it.name.orEmpty(), query, true) }
                 .mapNotNull(::symbolInformation)
+                .take(5)
                 .toList()
 
 private fun doWorkspaceSymbols(sp: SourcePath): Sequence<PsiNamedElement> =
         sp.allSymbols().asSequence().flatMap(::fileSymbols)
 
+private val psiFileElements = ConcurrentHashMap<PsiFile, Collection<PsiNamedElement>>()
 private fun fileSymbols(file: PsiFile): Sequence<PsiNamedElement> =
-        file.preOrderTraversal().asSequence().mapNotNull {
-            pickImportantElements(it, false)
-        }
+    psiFileElements.getOrPut(file) {
+        file.allChildren.toList().mapNotNull { pickImportantElements(it, false) }
+    }.asSequence()
 
 private fun pickImportantElements(node: PsiElement, includeLocals: Boolean): PsiNamedElement? =
         when (node) {

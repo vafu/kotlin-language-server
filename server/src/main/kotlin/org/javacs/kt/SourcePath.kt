@@ -15,6 +15,7 @@ import kotlin.concurrent.withLock
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.ReentrantLock
 import java.util.jar.JarFile
 
@@ -226,16 +227,19 @@ class SourcePath(
             .map { it.apply { parseIfChanged() }.parsed!! }
 
     fun allSymbols(includeHidden: Boolean = false) =
-        all(includeHidden) + javaFiles()
+        all() + javaFiles()
 
+    private var allFiles: Collection<PsiFile>? = null
 
-    private var allFiles: List<PsiFile>? = null
+    private val compiledJavaFiles = ConcurrentHashMap<Path, PsiFile>()
 
     private fun javaFiles() =
-        allFiles ?: cp.javaSourcePath.map {
-            val content = it.toFile().readText()
-            cp.compiler.createPsiFile(content, it, JavaLanguage.INSTANCE, CompilationKind.DEFAULT)
-        } + all()
+        cp.javaSourcePath.map {
+            compiledJavaFiles.getOrPut(it) {
+                val content = it.toFile().readText()
+                cp.compiler.createPsiFile(content, it, JavaLanguage.INSTANCE, CompilationKind.DEFAULT)
+            }
+        }
 
     private fun fromClasspath() =
         cp.classPath.asSequence()
@@ -250,7 +254,7 @@ class SourcePath(
             }
             .map { (klsUri, path) -> contentProvider.contentOf(klsUri) to path }
             .map { (content, path) ->
-//       val file =  KlsURI(path).extractToTemporaryFile(TemporaryDirectory("asdf"))
+                //       val file =  KlsURI(path).extractToTemporaryFile(TemporaryDirectory("asdf"))
                 cp.compiler.createPsiFile(content = content, file = path, language = JavaLanguage.INSTANCE, kind = CompilationKind.DEFAULT)
             }
             .toList()
