@@ -5,61 +5,70 @@ allprojects { project ->
 			System.out.println "gradle-version $gradleVersion"
 			System.out.println "kotlin-lsp-project ${project.name}"
 
-			if (project.hasProperty('android')) {
-				project.android.getBootClasspath().each {
-					System.out.println "kotlin-lsp-gradle $it"
-				}
-				if (project.android.hasProperty('applicationVariants')) {
-					project.android.applicationVariants.all { variant ->
+            if (project.hasProperty('android')) {
+                project.android.getBootClasspath().each {
+                    System.out.println "kotlin-lsp-gradle $it"
+                }
+                if (project.android.hasProperty('applicationVariants')) {
+                    project.android.applicationVariants.all { variant ->
 
-						def variantBase = variant.baseName.replaceAll("-", File.separator)
+                        def variantBase = variant.baseName.replaceAll("-", File.separator)
 
-						def buildClasses = project.getBuildDir().absolutePath +
-							File.separator + "intermediates" +
-							File.separator + variantBase +
-							File.separator + "classes"
+                        def buildClasses = project.getBuildDir().absolutePath +
+                            File.separator + "intermediates" +
+                            File.separator + variantBase +
+                            File.separator + "classes"
 
-						System.out.println "kotlin-lsp-gradle $buildClasses"
+                        System.out.println "kotlin-lsp-gradle $buildClasses"
 
-						def userClasses = project.getBuildDir().absolutePath +
-							File.separator + "intermediates" +
-							File.separator + "javac" +
-							File.separator + variantBase +
-							File.separator + "compile" + variantBase.capitalize() + "JavaWithJavac" + File.separator + "classes"
+                        def userClasses = project.getBuildDir().absolutePath +
+                            File.separator + "intermediates" +
+                            File.separator + "javac" +
+                            File.separator + variantBase +
+                            File.separator + "compile" + variantBase.capitalize() + "JavaWithJavac" + File.separator + "classes"
 
-						System.out.println "kotlin-lsp-gradle $userClasses"
+                        System.out.println "kotlin-lsp-gradle $userClasses"
 
-						variant.getCompileClasspath().each {
-							System.out.println "kotlin-lsp-gradle $it"
-						}
-					}
-				}
-			} else {
+                        variant.getCompileClasspath().each {
+                            System.out.println "kotlin-lsp-gradle $it"
+                        }
+                        System.out.println "kotlin-lsp-gradle "
+                    }
+                }
+            }
 				// Print the list of all dependencies jar files.
-				project.configurations.findAll {
-					it.metaClass.respondsTo(it, "isCanBeResolved") ? it.isCanBeResolved() : false
-				}.each {
-					it.resolve().each {
-						def inspected = it.inspect()
 
-						if (inspected.endsWith("jar")) {
-							if (!inspected.contains("zip!")) {
+				project.configurations.findAll {
+					// it.metaClass.respondsTo(it, "isCanBeResolved") ? it.isCanBeResolved() : false
+					System.out.println "logtestkek $it.name"
+					// it.getName().contains("debug") &&
+					(it.metaClass.respondsTo(it, "isCanBeResolved") ? it.isCanBeResolved() : false)
+				}.each {
+				    try {
+					    it.resolve().each {
+						    def inspected = it.inspect()
+
+
+			             if (inspected.endsWith("jar")) {
+						    	if (!inspected.contains("zip!")) {
 								System.out.println "kotlin-lsp-gradle $it"
-							}
-						} else if (inspected.endsWith("aar")) {
-							// If the dependency is an AAR file we try to determine the location
-							// of the classes.jar file in the exploded aar folder.
-							def splitted = inspected.split("/")
-							def namespace = splitted[-5]
-							def name = splitted[-4]
-							def version = splitted[-3]
-							def explodedPath = "$project.buildDir/intermediates/exploded-aar/$namespace/$name/$version/jars/classes.jar"
-							System.out.println "kotlin-lsp-gradle $explodedPath"
-						}
+						    	}
+						    } else if (inspected.endsWith("aar")) {
+						    	// If the dependency is an AAR file we try to determine the location
+						    	// of the classes.jar file in the exploded aar folder.
+						    	def splitted = inspected.split("/")
+						    	def namespace = splitted[-5]
+						    	def name = splitted[-4]
+						    	def version = splitted[-3]
+						    	def explodedPath = "$project.buildDir/intermediates/exploded-aar/$namespace/$name/$version/jars/classes.jar"
+						    	System.out.println "kotlin-lsp-gradle $explodedPath"
+						    }
+					    }
+					} catch (Exception e) {
+                        System.out.println "naebalovo"
 					}
 				}
 			}
-		}
 	}
 
     task kotlinLSPAllGradleDeps {
