@@ -26,7 +26,8 @@ private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<
         // Only test whether non-ignored file is a build-file
         if (ignored.none { it.matches(root.relativize(file)) }) {
             val resolver = if (
-                file.toAbsolutePath().toString().contains("mushroom/build.gradle")
+                file.toAbsolutePath().toString().contains("mushroom/build.gradle") ||
+                file.toAbsolutePath().toString().contains("mushroom/apk/build.gradle")
             ) {
                 asClassPathProvider(file)
             } else null
