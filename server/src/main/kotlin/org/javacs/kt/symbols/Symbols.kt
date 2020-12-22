@@ -7,8 +7,8 @@ import org.eclipse.lsp4j.SymbolKind
 import org.eclipse.lsp4j.DocumentSymbol
 import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.javacs.kt.SourcePath
-import org.javacs.kt.completion.containsCharactersInOrder
 import org.javacs.kt.position.range
+import org.javacs.kt.util.containsCharactersInOrder
 import org.javacs.kt.util.preOrderTraversal
 import org.javacs.kt.util.toPath
 import org.jetbrains.kotlin.com.intellij.lang.jvm.JvmModifier
@@ -35,12 +35,11 @@ private fun doDocumentSymbols(element: PsiElement): List<DocumentSymbol> {
     } ?: children
 }
 
-
 fun workspaceSymbols(query: String, sp: SourcePath): List<SymbolInformation> =
         doWorkspaceSymbols(sp)
                 .filter { containsCharactersInOrder(it.name.orEmpty(), query, true) }
                 .mapNotNull(::symbolInformation)
-                .take(5)
+                .take(10)
                 .toList()
 
 private fun doWorkspaceSymbols(sp: SourcePath): Sequence<PsiNamedElement> =

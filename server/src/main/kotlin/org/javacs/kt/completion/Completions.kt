@@ -7,8 +7,10 @@ import org.eclipse.lsp4j.CompletionList
 import org.javacs.kt.CompiledFile
 import org.javacs.kt.LOG
 import org.javacs.kt.CompletionConfiguration
+import org.javacs.kt.util.containsCharactersInOrder
 import org.javacs.kt.util.findParent
 import org.javacs.kt.util.noResult
+import org.javacs.kt.util.stringDistance
 import org.javacs.kt.util.toPath
 import org.javacs.kt.util.onEachIndexed
 import org.jetbrains.kotlin.container.get
@@ -42,19 +44,24 @@ import org.jetbrains.kotlin.types.typeUtil.replaceArgumentsWithStarProjections
 import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 import java.util.concurrent.TimeUnit
 
-private const val MAX_COMPLETION_ITEMS = 50
+// The maxmimum number of completion items
+private const val MAX_COMPLETION_ITEMS = 75
+
+// The minimum length after which completion lists are sorted
+private const val MIN_SORT_LENGTH = 3
 
 /** Finds completions at the specified position. */
 fun completions(file: CompiledFile, cursor: Int, config: CompletionConfiguration): CompletionList {
     val partial = findPartialIdentifier(file, cursor)
     LOG.debug("Looking for completions that match '{}'", partial)
 
-    val items = elementCompletionItems(file, cursor, config, partial).ifEmpty { keywordCompletionItems(partial) }
+    var isIncomplete = false
+    val items = elementCompletionItems(file, cursor, config, partial).ifEmpty { keywordCompletionItems(partial).also { isIncomplete = true } }
     val itemList = items
         .take(MAX_COMPLETION_ITEMS)
         .toList()
         .onEachIndexed { i, item -> item.sortText = i.toString().padStart(2, '0') }
-    val isIncomplete = (itemList.size == MAX_COMPLETION_ITEMS)
+    isIncomplete = isIncomplete || (itemList.size == MAX_COMPLETION_ITEMS)
 
     return CompletionList(isIncomplete, itemList)
 }
@@ -74,9 +81,10 @@ private fun elementCompletionItems(file: CompiledFile, cursor: Int, config: Comp
     val surroundingElement = completableElement(file, cursor) ?: return emptySequence()
     val completions = elementCompletions(file, cursor, surroundingElement)
 
-    val nameFilter = matchesPartialIdentifier(partial)
-    val matchesName = completions.filter(nameFilter)
-    val visible = matchesName.filter(isVisible(file, cursor))
+    val matchesName = completions.filter { containsCharactersInOrder(name(it), partial, caseSensitive = false) }
+    val sorted = matchesName.takeIf { partial.length >= MIN_SORT_LENGTH }?.sortedBy { stringDistance(name(it), partial) }
+        ?: matchesName.sortedBy { if (name(it).startsWith(partial)) 0 else 1 }
+    val visible = sorted.filter(isVisible(file, cursor))
 
     return visible.map { completionItem(it, surroundingElement, file, config) }
 }
@@ -141,6 +149,8 @@ private fun completableElement(file: CompiledFile, cursor: Int): KtElement? {
     val el = file.parseAtPoint(cursor - 1) ?: return null
             // import x.y.?
     return el.findParent<KtImportDirective>()
+            // package x.y.?
+            ?: el.findParent<KtPackageDirective>()
             // :?
             ?: el.parent as? KtTypeElement
             // .?
@@ -167,6 +177,18 @@ private fun elementCompletions(file: CompiledFile, cursor: Int, surroundingEleme
             LOG.debug("Looking for members of package '{}'", parent)
             val parentPackage = module.getPackage(FqName.fromSegments(parent.split('.')))
             parentPackage.memberScope.getContributedDescriptors().asSequence()
+        }
+        // package x.y.?
+        is KtPackageDirective -> {
+            LOG.info("Completing package '{}'", surroundingElement.text)
+            val module = file.container.get<ModuleDescriptor>()
+            val match = Regex("package ((\\w+\\.)*)[\\w*]*").matchEntire(surroundingElement.text)
+                ?: return doesntLookLikePackage(surroundingElement)
+            val parentDot = if (match.groupValues[1].isNotBlank()) match.groupValues[1] else "."
+            val parent = parentDot.substring(0, parentDot.length - 1)
+            LOG.debug("Looking for members of package '{}'", parent)
+            val parentPackage = module.getPackage(FqName.fromSegments(parent.split('.')))
+            parentPackage.memberScope.getDescriptorsFiltered(DescriptorKindFilter.PACKAGES).asSequence()
         }
         // :?
         is KtTypeElement -> {
@@ -334,44 +356,14 @@ private fun implicitMembers(scope: HierarchicalScope): Sequence<DeclarationDescr
     return implicit.type.memberScope.getContributedDescriptors().asSequence()
 }
 
-private fun equalsIdentifier(identifier: String): (DeclarationDescriptor) -> Boolean {
-    return { name(it) == identifier }
-}
-
-private fun matchesPartialIdentifier(partialIdentifier: String): (DeclarationDescriptor) -> Boolean {
-    return {
-        containsCharactersInOrder(name(it), partialIdentifier, false)
-    }
-}
+private fun equalsIdentifier(identifier: String): (DeclarationDescriptor) -> Boolean =
+    { name(it) == identifier }
 
 private fun name(d: DeclarationDescriptor): String {
     if (d is ConstructorDescriptor)
         return d.constructedClass.name.identifier
     else
         return d.name.identifier
-}
-
-fun containsCharactersInOrder(
-        candidate: CharSequence, pattern: CharSequence, caseSensitive: Boolean): Boolean {
-    var iCandidate = 0
-    var iPattern = 0
-
-    while (iCandidate < candidate.length && iPattern < pattern.length) {
-        var patternChar = pattern[iPattern]
-        var testChar = candidate[iCandidate]
-
-        if (!caseSensitive) {
-            patternChar = Character.toLowerCase(patternChar)
-            testChar = Character.toLowerCase(testChar)
-        }
-
-        if (patternChar == testChar) {
-            iPattern++
-            iCandidate++
-        } else iCandidate++
-    }
-
-    return iPattern == pattern.length
 }
 
 private fun isVisible(file: CompiledFile, cursor: Int): (DeclarationDescriptor) -> Boolean {
@@ -470,6 +462,12 @@ private fun describeDeclaration(declaration: DeclarationDescriptor): String {
 
 private fun doesntLookLikeImport(importDirective: KtImportDirective): Sequence<DeclarationDescriptor> {
     LOG.debug("{} doesn't look like import a.b...", importDirective.text)
+
+    return emptySequence()
+}
+
+private fun doesntLookLikePackage(packageDirective: KtPackageDirective): Sequence<DeclarationDescriptor> {
+    LOG.debug("{} doesn't look like package a.b...", packageDirective.text)
 
     return emptySequence()
 }
