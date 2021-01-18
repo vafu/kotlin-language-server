@@ -1,6 +1,9 @@
 package org.javacs.kt.classpath
 
 import org.javacs.kt.LOG
+import org.javacs.kt.SettingKey
+import org.javacs.kt.getSettingParam
+import org.javacs.kt.SettingParam
 import java.nio.file.Path
 import java.nio.file.PathMatcher
 import java.nio.file.Files
@@ -19,19 +22,24 @@ private fun workspaceResolvers(workspaceRoot: Path): Sequence<ClassPathResolver>
 }
 
 /** Searches the folder for all build-files. */
-private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<ClassPathResolver> =
-    root.toFile()
+private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<ClassPathResolver> {
+    val whitelistOnly = getSettingParam<SettingParam.BoolParam>(SettingKey.WHITELIST_ONLY, root).param
+    val whitelist = getSettingParam<SettingParam.ListParam>(SettingKey.WHITELIST_PATH, root).params
+
+    return root.toFile()
         .walk()
         .onEnter { file -> ignored.none { it.matches(root.relativize(file.toPath())) } }
-        .mapNotNull {
+        .mapNotNull { file ->
+            if (!whitelistOnly || whitelist.any { file.toPath().toAbsolutePath().toString().contains(it) }) {
+                asClassPathProvider(file.toPath())
+            } else null
             // if (
             //     it.toPath().toAbsolutePath().toString().contains("mushroom/build.gradle") ||
             //     it.toPath().toAbsolutePath().toString().contains("mushroom/apk/build.gradle")
             // ) {
-                asClassPathProvider(it.toPath())
-            // } else null
         }
         .toList()
+    }
 
 /** Tries to read glob patterns from a gitignore. */
 private fun ignoredPathPatterns(path: Path): List<PathMatcher> =
