@@ -33,10 +33,6 @@ private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<
             if (!whitelistOnly || whitelist.any { file.toPath().toAbsolutePath().toString().contains(it) }) {
                 asClassPathProvider(file.toPath())
             } else null
-            // if (
-            //     it.toPath().toAbsolutePath().toString().contains("mushroom/build.gradle") ||
-            //     it.toPath().toAbsolutePath().toString().contains("mushroom/apk/build.gradle")
-            // ) {
         }
         .toList()
     }
