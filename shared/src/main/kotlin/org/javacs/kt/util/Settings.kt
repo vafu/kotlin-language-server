@@ -74,6 +74,7 @@ sealed class SettingParam {
 
 enum class SettingKey(val paramClass: Class<out SettingParam>, val defaultParam: SettingParam) { 
 
-    WHITELIST_PATH(SettingParam.ListParam::class.java, SettingParam.ListParam(emptyList())),
-    WHITELIST_ONLY(SettingParam.BoolParam::class.java, SettingParam.BoolParam(false))
+    WHITELIST_PATHS(SettingParam.ListParam::class.java, SettingParam.ListParam(emptyList())),
+    EXCLUDE_PATTERNS(SettingParam.ListParam::class.java, SettingParam.ListParam(emptyList())),
+    WHITELIST_ONLY(SettingParam.BoolParam::class.java, SettingParam.BoolParam(false)),
 }

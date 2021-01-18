@@ -24,7 +24,7 @@ private fun workspaceResolvers(workspaceRoot: Path): Sequence<ClassPathResolver>
 /** Searches the folder for all build-files. */
 private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<ClassPathResolver> {
     val whitelistOnly = getSettingParam<SettingParam.BoolParam>(SettingKey.WHITELIST_ONLY, root).param
-    val whitelist = getSettingParam<SettingParam.ListParam>(SettingKey.WHITELIST_PATH, root).params
+    val whitelist = getSettingParam<SettingParam.ListParam>(SettingKey.WHITELIST_PATHS, root).params
 
     return root.toFile()
         .walk()
