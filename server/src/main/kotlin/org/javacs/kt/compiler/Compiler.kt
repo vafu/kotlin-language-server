@@ -1,15 +1,15 @@
-package org.javacs.kt
+package org.javacs.kt.compiler
 
-import org.jetbrains.kotlin.com.intellij.codeInsight.NullableNotNullManager
-import org.jetbrains.kotlin.com.intellij.lang.Language
-import org.jetbrains.kotlin.com.intellij.openapi.Disposable
-import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer
-import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems
-import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
-import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileSystem
-import org.jetbrains.kotlin.com.intellij.psi.PsiFile
-import org.jetbrains.kotlin.com.intellij.psi.PsiFileFactory
-import org.jetbrains.kotlin.com.intellij.mock.MockProject
+import com.intellij.codeInsight.NullableNotNullManager
+import com.intellij.lang.Language
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vfs.StandardFileSystems
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.VirtualFileSystem
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
+import com.intellij.mock.MockProject
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.environment.setIdeaIoUseFallback
 import org.jetbrains.kotlin.cli.jvm.compiler.CliBindingTrace
@@ -76,10 +76,11 @@ import kotlin.script.experimental.host.ScriptingHostConfiguration
 import kotlin.script.experimental.host.configurationDependencies
 import kotlin.script.experimental.jvm.defaultJvmScriptingHostConfiguration
 import kotlin.script.experimental.jvm.JvmDependency
+import org.javacs.kt.LOG
+import org.javacs.kt.CompilerConfiguration
 import org.javacs.kt.util.KotlinLSException
-import org.javacs.kt.util.KotlinNullableNotNullManager
 import org.javacs.kt.util.LoggingMessageCollector
-import org.jetbrains.kotlin.com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.GlobalSearchScope
 
 private val GRADLE_DSL_DEPENDENCY_PATTERN = Regex("^gradle-(?:kotlin-dsl|core).*\\.jar$")
 
@@ -386,10 +387,6 @@ private class CompilationEnvironment(
         )
 
         val project = environment.project
-        if (project is MockProject) {
-            project.registerService(NullableNotNullManager::class.java, KotlinNullableNotNullManager(project))
-        }
-
         parser = KtPsiFactory(project)
         scripts = ScriptDefinitionProvider.getInstance(project)!! as CliScriptDefinitionProvider
     }

@@ -3,6 +3,23 @@ All notable changes to the language server will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.8.3]
+- Lazier file tree walking while looking for resolvers
+
+## [0.8.2]
+- Minor tweaks
+
+## [0.8.1]
+- Minor fixes
+
+## [0.8.0]
+- Tagged deprecation/unused variable warnings
+- Kotlin 1.4.20 support
+- New formatter (ktfmt)
+- Java 11+ is now required
+
+## [0.7.1]
+
 ## [0.7.0]
 - Improve completion list sorting
 - Fix bug that occurred when project path contained whitespace

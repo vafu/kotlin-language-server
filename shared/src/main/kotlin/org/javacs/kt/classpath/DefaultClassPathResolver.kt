@@ -19,26 +19,19 @@ private fun workspaceResolvers(workspaceRoot: Path): Sequence<ClassPathResolver>
 }
 
 /** Searches the folder for all build-files. */
-private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<ClassPathResolver> {
-    val resolvers = mutableListOf<ClassPathResolver>()
-
-    for (file in Files.walk(root)) {
-        // Only test whether non-ignored file is a build-file
-        if (ignored.none { it.matches(root.relativize(file)) }) {
-            val resolver = if (
-                file.toAbsolutePath().toString().contains("mushroom/build.gradle") ||
-                file.toAbsolutePath().toString().contains("mushroom/apk/build.gradle")
-            ) {
-                asClassPathProvider(file)
-            } else null
-           if (resolver != null) {
-                resolvers.add(resolver)
-            }
+private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<ClassPathResolver> =
+    root.toFile()
+        .walk()
+        .onEnter { file -> ignored.none { it.matches(root.relativize(file.toPath())) } }
+        .mapNotNull {
+            // if (
+            //     it.toPath().toAbsolutePath().toString().contains("mushroom/build.gradle") ||
+            //     it.toPath().toAbsolutePath().toString().contains("mushroom/apk/build.gradle")
+            // ) {
+                asClassPathProvider(it.toPath())
+            // } else null
         }
-    }
-
-    return resolvers
-}
+        .toList()
 
 /** Tries to read glob patterns from a gitignore. */
 private fun ignoredPathPatterns(path: Path): List<PathMatcher> =

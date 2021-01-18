@@ -1,11 +1,12 @@
 package org.javacs.kt.hover
 
 import org.eclipse.lsp4j.Hover
-import org.eclipse.lsp4j.MarkedString
+import org.eclipse.lsp4j.MarkupContent
 import org.eclipse.lsp4j.Range
 import org.eclipse.lsp4j.jsonrpc.messages.Either
-import org.jetbrains.kotlin.com.intellij.openapi.util.TextRange
-import org.jetbrains.kotlin.com.intellij.psi.PsiElement
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiDocCommentBase
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
@@ -33,21 +34,20 @@ fun hoverAt(file: CompiledFile, cursor: Int): Hover? {
     val javaDoc = getDocString(file, cursor)
     val location = ref.textRange
     val hoverText = DECL_RENDERER.render(target)
-    val hover = Either.forRight<String, MarkedString>(MarkedString("kotlin", hoverText))
+    val hover = MarkupContent("markdown", listOf("```kotlin\n$hoverText\n```", javaDoc).filter { it.isNotEmpty() }.joinToString("\n---\n"))
     val range = Range(
             position(file.content, location.startOffset),
             position(file.content, location.endOffset))
-    return Hover(listOf(hover, Either.forLeft(javaDoc)), range)
+    return Hover(hover, range)
 }
 
 private fun typeHoverAt(file: CompiledFile, cursor: Int): Hover? {
     val expression = file.parseAtPoint(cursor)?.findParent<KtExpression>() ?: return null
-    var javaDoc: String = ""
-    if (expression.children.size > 0 && expression.children[0] is KDoc)
-        javaDoc = renderJavaDoc(expression.children[0].text)
+    var javaDoc: String = expression.children.mapNotNull { (it as? PsiDocCommentBase)?.text }.map(::renderJavaDoc).firstOrNull() ?: ""
     val scope = file.scopeAtPoint(cursor) ?: return null
     val hoverText = renderTypeOf(expression, file.bindingContextOf(expression, scope)) ?: return null
-    return Hover(listOf(Either.forRight(MarkedString("kotlin", hoverText)), Either.forLeft(javaDoc)))
+    val hover = MarkupContent("markdown", listOf("```kotlin\n$hoverText\n```", javaDoc).filter { it.isNotEmpty() }.joinToString("\n---\n"))
+    return Hover(hover)
 }
 
 // Source: https://github.com/JetBrains/kotlin/blob/master/idea/src/org/jetbrains/kotlin/idea/codeInsight/KotlinExpressionTypeProvider.kt
@@ -87,7 +87,7 @@ private fun renderTypeOf(element: KtExpression, bindingContext: BindingContext):
 
     val expressionType = bindingContext[BindingContext.EXPRESSION_TYPE_INFO, element]?.type ?: element.getType(bindingContext)
     val result = expressionType?.let { TYPE_RENDERER.renderType(it) } ?: return null
-    
+
     val smartCast = bindingContext[BindingContext.SMARTCAST, element]
     if (smartCast != null && element is KtReferenceExpression) {
         val declaredType = (bindingContext[BindingContext.REFERENCE_TARGET, element] as? CallableDescriptor)?.returnType

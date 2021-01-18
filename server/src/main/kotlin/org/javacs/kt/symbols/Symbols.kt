@@ -1,6 +1,7 @@
 package org.javacs.kt.symbols
 
 import javaslang.collection.Seq
+import com.intellij.psi.PsiElement
 import org.eclipse.lsp4j.Location
 import org.eclipse.lsp4j.SymbolInformation
 import org.eclipse.lsp4j.SymbolKind
@@ -11,8 +12,8 @@ import org.javacs.kt.position.range
 import org.javacs.kt.util.containsCharactersInOrder
 import org.javacs.kt.util.preOrderTraversal
 import org.javacs.kt.util.toPath
-import org.jetbrains.kotlin.com.intellij.lang.jvm.JvmModifier
-import org.jetbrains.kotlin.com.intellij.psi.*
+import com.intellij.lang.jvm.JvmModifier
+import com.intellij.psi.*
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
@@ -31,7 +32,6 @@ private fun doDocumentSymbols(element: PsiElement): List<DocumentSymbol> {
         val nameSpan = currentDecl.let { range(file.text, it.textRange) } ?: span
         val symbol = DocumentSymbol(currentDecl.name ?: "<anonymous>", symbolKind(currentDecl), span, nameSpan, null, children)
         listOf(symbol)
-        emptyList<DocumentSymbol>()
     } ?: children
 }
 
@@ -39,7 +39,7 @@ fun workspaceSymbols(query: String, sp: SourcePath): List<SymbolInformation> =
         doWorkspaceSymbols(sp)
                 .filter { containsCharactersInOrder(it.name.orEmpty(), query, true) }
                 .mapNotNull(::symbolInformation)
-                .take(10)
+                // .take()
                 .toList()
 
 private fun doWorkspaceSymbols(sp: SourcePath): Sequence<PsiNamedElement> =

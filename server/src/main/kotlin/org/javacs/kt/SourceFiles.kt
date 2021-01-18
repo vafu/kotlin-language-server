@@ -1,8 +1,8 @@
 package org.javacs.kt
 
-import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtil.convertLineSeparators
-import org.jetbrains.kotlin.com.intellij.lang.java.JavaLanguage
-import org.jetbrains.kotlin.com.intellij.lang.Language
+import com.intellij.openapi.util.text.StringUtil.convertLineSeparators
+import com.intellij.lang.java.JavaLanguage
+import com.intellij.lang.Language
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent
 import org.javacs.kt.util.KotlinLSException
@@ -196,14 +196,22 @@ private fun patch(sourceText: String, change: TextDocumentContentChangeEvent): S
     }
 
     // Skip unchanged chars
-    for (character in 0 until range.start.character)
+    for (character in 0 until range.start.character) {
         writer.write(reader.read())
+    }
 
     // Write replacement text
     writer.write(change.text)
 
     // Skip replaced text
-    reader.skip(change.rangeLength!!.toLong())
+    for (i in 0 until (range.end.line - range.start.line)) {
+        reader.readLine()
+    }
+    if (range.start.line == range.end.line) {
+        reader.skip((range.end.character - range.start.character).toLong())
+    } else {
+        reader.skip(range.end.character.toLong())
+    }
 
     // Write remaining text
     while (true) {
