@@ -5,14 +5,11 @@ import org.javacs.kt.util.AsyncExecutor
 import org.javacs.kt.util.fileExtension
 import org.javacs.kt.util.filePath
 import org.javacs.kt.util.describeURI
-<<<<<<< HEAD
 import org.javacs.kt.util.preOrderTraversal
 import com.intellij.lang.java.JavaLanguage
-=======
 import org.javacs.kt.index.SymbolIndex
 import org.javacs.kt.progress.Progress
 import org.javacs.kt.IndexingConfiguration
->>>>>>> 8cc94b996b600a70b65d79b067e9ea750fdbd9d5
 import com.intellij.lang.Language
 import com.intellij.psi.PsiFile
 import com.intellij.openapi.fileTypes.FileType

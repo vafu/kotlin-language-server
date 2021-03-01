@@ -27,17 +27,12 @@ private fun folderResolvers(root: Path, ignored: List<PathMatcher>): Collection<
 
     return root.toFile()
         .walk()
-<<<<<<< HEAD
-        .onEnter { file -> ignored.none { it.matches(root.relativize(file.toPath())) } }
+        .onEnter { file -> ignored.none { it.matches(file.toPath()) } }
         .mapNotNull { file ->
             if (!whitelistOnly || whitelist.any { file.toPath().toAbsolutePath().toString().contains(it) }) {
                 asClassPathProvider(file.toPath())
             } else null
         }
-=======
-        .onEnter { file -> ignored.none { it.matches(file.toPath()) } }
-        .mapNotNull { asClassPathProvider(it.toPath()) }
->>>>>>> 8cc94b996b600a70b65d79b067e9ea750fdbd9d5
         .toList()
     }
 
