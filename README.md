@@ -29,7 +29,7 @@ The project uses the internal APIs of the [Kotlin compiler](https://github.com/J
 
 Dependencies are determined by the [findClassPath](server/src/main/kotlin/org/javacs/kt/classpath/findClassPath.kt) function, which invokes Maven or Gradle and tells it to output a list of dependencies. Currently, both Maven and Gradle projects are supported.
 
-I get incremental compilation at the file-level by keeping the same `KotlinCoreEnvironment` alive between compilations in [Compiler.kt](server/src/main/kotlin/org/javacs/kt/Compiler.kt). There is a performance benchmark in [OneFilePerformance.kt](server/src/test/kotlin/org/javacs/kt/OneFilePerformance.kt) that verifies this works.
+I get incremental compilation at the file-level by keeping the same `KotlinCoreEnvironment` alive between compilations in [Compiler.kt](server/src/main/kotlin/org/javacs/kt/compiler/Compiler.kt). There is a performance benchmark in [OneFilePerformance.kt](server/src/test/kotlin/org/javacs/kt/OneFilePerformance.kt) that verifies this works.
 
 Getting incremental compilation at the expression level is a bit more complicated:
 - Fully compile a file and store in [CompiledFile](server/src/main/kotlin/org/javacs/kt/CompiledFile.kt):
@@ -58,8 +58,7 @@ There is an extensive suite of behavioral [tests](server/src/test/kotlin/org/jav
 
 | Name | Command | Description |
 | ---- | ------- | ----------- |
-| update_kt_version.py | `python3 scripts/update_kt_version.py` | Finds and updates the Kotlin compiler/plugin version for this project |
-| bump_version.py | `python3 scripts/bump_version.py` | Increments the project version and creates a new tag |
+| release_version.py | `python3 scripts/release_version.py` | Creates a tag for the current version and bumps the development version |
 
 ## Protocol Extensions
 

@@ -11,8 +11,15 @@ version = projectVersion
 mainClassName = 'org.javacs.kt.MainKt'
 description = 'Code completions, diagnostics and more for Kotlin'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
+
+application {
+    applicationDefaultJvmArgs = ["-DkotlinLanguageServer.version=$projectVersion"]
+}
 
 def debugPort = 8000
 def debugArgs = '-agentlib:jdwp=transport=dt_socket,server=y,address=8000,suspend=n,quiet=y'
@@ -24,6 +31,9 @@ startScripts {
 repositories {
     maven { url uri("$projectDir/lib") }
     maven { url 'https://jitpack.io' }
+    // TODO: Update once https://github.com/JetBrains/Exposed/issues/1160 is resolved
+    //       since Bintray will be shutting down soon
+    maven { url 'https://cache-redirector.jetbrains.com/dl.bintray.com/kotlin/exposed' }
 }
 
 dependencies {
@@ -35,10 +45,14 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-scripting-compiler-impl:$kotlinVersion"
     implementation "org.jetbrains.kotlin:kotlin-scripting-jvm-host-unshaded:$kotlinVersion"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-    implementation "org.jetbrains.kotlin:ide-common-ij201:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:ide-common-ij202:$kotlinVersion"
     // implementation("org.jetbrains.kotlin:kotlin-plugin-ij201:$kotlinVersion") { transitive = false }
     implementation 'org.jetbrains:fernflower:1.0'
-    implementation 'com.github.fwcd:ktfmt:22bd538a1c'
+    implementation "org.jetbrains.exposed:exposed-core:$exposedVersion"
+    implementation "org.jetbrains.exposed:exposed-dao:$exposedVersion"
+    implementation "org.jetbrains.exposed:exposed-jdbc:$exposedVersion"
+    implementation 'com.h2database:h2:1.4.200'
+    implementation 'com.github.fwcd.ktfmt:ktfmt:22bd538a1c'
     implementation 'com.beust:jcommander:1.78'
 
     testImplementation 'org.hamcrest:hamcrest-all:1.3'
